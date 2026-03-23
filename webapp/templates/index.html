@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hallucination Scanner</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,700;1,6..72,300&family=Azeret+Mono:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <p class="header-kicker">FYP Research Tool — v0.1</p>
+        <h1>Hallucination <em>Scanner</em></h1>
+        <div class="header-meta">
+          <span>NLLB Translation</span>
+          <span>DeBERTa Risk Analysis</span>
+          <span>Seq Log Probability</span>
+        </div>
+      </header>
+
+      <main>
+        <div class="card input-card">
+          <label for="sinhalaInput">Source Text — Sinhala</label>
+          <textarea
+            id="sinhalaInput"
+            placeholder="ඔබේ සිංහල පාඨය මෙතැනට ඇතුළු කරන්න…"
+          ></textarea>
+          <button id="analyzeBtn"><span>Translate &amp; Analyse →</span></button>
+        </div>
+
+        <div class="card result-card hidden" id="resultCard">
+          <div class="result-header">
+            <h2>Analysis Result</h2>
+            <span id="riskBadge" class="badge">Safe</span>
+          </div>
+
+          <div class="result-grid">
+            <div class="result-item">
+              <label>English Translation</label>
+              <p id="translationText" class="translation-output">…</p>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric">
+                <span class="metric-label">Log Probability</span>
+                <span id="logProbVal" class="metric-value">0.00</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Is Hallucinated?</span>
+                <span id="isHallucVal" class="metric-value">No</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Risk Score</span>
+                <span id="tokenCountVal" class="metric-value">0</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Semantic Similarity (LaBSE)</span>
+                <span id="labseScoreVal" class="metric-value">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="/static/js/script.js?v=5"></script>
+  </body>
+</html>
