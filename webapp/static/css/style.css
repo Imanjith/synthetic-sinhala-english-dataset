@@ -7,18 +7,18 @@
   --accent: #bf2318;
   --accent-dim: rgba(191, 35, 24, 0.07);
   --success: #1a5c38;
-  --success-dim: rgba(26, 92, 56, 0.1);
+  --success-dim: rgba(26, 92, 56, 0.10);
   --warning: #b5481a;
-  --warning-dim: rgba(181, 72, 26, 0.1);
+  --warning-dim: rgba(181, 72, 26, 0.10);
   --danger: #bf2318;
-  --danger-dim: rgba(191, 35, 24, 0.1);
+  --danger-dim: rgba(191, 35, 24, 0.10);
   --border: rgba(26, 24, 20, 0.18);
   --rule-h: 28px;
+  --accent-green: #1a5c38;
+  --accent-red: #bf2318;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 /* ── Body + Ruled-Paper Background ── */
 body {
@@ -37,13 +37,12 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 4rem 1.5rem 6rem;
+  padding: 4rem 1.5rem 7rem;
 }
 
 .container {
   width: 100%;
-  max-width: 760px;
-  /* Page-level entrance animation */
+  max-width: 800px;
   animation: pageIn 0.5s ease both;
 }
 
@@ -116,6 +115,29 @@ header h1 em {
   gap: 1.25rem;
 }
 
+/* ── Result Sections ── */
+.result-section {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.section-label {
+  display: block;
+  font-family: 'Azeret Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  font-weight: 600;
+  margin-bottom: 0.85rem;
+}
+
+.section-label-dim {
+  font-weight: 400;
+  opacity: 0.6;
+}
+
 /* ── Form Elements ── */
 label {
   font-family: 'Azeret Mono', monospace;
@@ -183,9 +205,7 @@ button::after {
   z-index: 0;
 }
 
-button:hover::after {
-  transform: scaleX(1);
-}
+button:hover::after { transform: scaleX(1); }
 
 button span {
   position: relative;
@@ -197,14 +217,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:disabled::after {
-  display: none;
-}
+button:disabled::after { display: none; }
 
 /* ── Results ── */
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 .result-card {
   animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -244,29 +260,16 @@ button:disabled::after {
   border-radius: 0;
 }
 
-.badge.safe {
-  color: var(--success);
-  background: var(--success-dim);
-}
-
-.badge.medium {
-  color: var(--warning);
-  background: var(--warning-dim);
-}
-
+.badge.safe    { color: var(--success); background: var(--success-dim); }
+.badge.medium  { color: var(--warning); background: var(--warning-dim); }
 .badge.high,
-.badge.critical {
-  color: var(--danger);
-  background: var(--danger-dim);
-}
+.badge.critical { color: var(--danger); background: var(--danger-dim); }
 
 .badge.critical {
   animation: blink-border 1.1s step-end infinite;
 }
 
-@keyframes blink-border {
-  50% { border-color: transparent; }
-}
+@keyframes blink-border { 50% { border-color: transparent; } }
 
 /* ── Translation Text ── */
 .translation-output {
@@ -274,7 +277,7 @@ button:disabled::after {
   font-size: 1.3rem;
   line-height: 1.75;
   font-weight: 400;
-  margin: 0;
+  margin: 0.5rem 0 0;
   color: var(--ink);
 }
 
@@ -292,31 +295,223 @@ button:disabled::after {
   background: var(--bg-card);
   padding: 1.25rem 1rem;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
 }
 
 .metric-label {
   display: block;
   font-family: 'Azeret Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.16em;
+  font-size: 0.63rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-dim);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .metric-value {
   font-family: 'Newsreader', serif;
-  font-size: 2.6rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: var(--accent);
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-/* ── Loading State ── */
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.metric-sublabel {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-top: 0.3rem;
+  opacity: 0.7;
 }
+
+/* ── Gauge Bars ── */
+.gauges-section { }
+
+.gauge-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 55px;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.gauge-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gauge-track {
+  height: 8px;
+  background: rgba(26, 24, 20, 0.10);
+  border-radius: 0;
+  position: relative;
+  overflow: visible;
+}
+
+.gauge-track--danger {
+  /* No additional style needed; fill colour handles it */
+}
+
+.gauge-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--success);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.gauge-fill--warning { background: var(--warning); }
+.gauge-fill--danger  { background: var(--danger); }
+
+/* Threshold tick mark on gauge track */
+.gauge-threshold {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background: var(--ink);
+  opacity: 0.3;
+  cursor: help;
+}
+
+.gauge-threshold--danger {
+  background: var(--danger);
+  opacity: 0.5;
+}
+
+.gauge-end-label {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ── Signal Grid ── */
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 560px) {
+  .signal-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.signal-item {
+  background: var(--bg-card);
+  padding: 1rem 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.signal-item.signal-ensemble {
+  border-left: 1px solid var(--border);
+}
+
+.signal-icon {
+  font-size: 1.4rem;
+  opacity: 0.25;
+}
+
+.signal-name {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.signal-verdict {
+  font-family: 'Newsreader', serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 0.1rem;
+}
+
+.signal-verdict.ok     { color: var(--success); }
+.signal-verdict.warn   { color: var(--warning); }
+.signal-verdict.danger { color: var(--danger); }
+
+/* ── Flagged Tokens ── */
+.flagged-tokens-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-height: 2rem;
+  align-items: center;
+}
+
+.token-chip {
+  font-family: 'Azeret Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  background: var(--danger-dim);
+  color: var(--danger);
+  border: 1px solid rgba(191, 35, 24, 0.3);
+  letter-spacing: 0.05em;
+  animation: chipIn 0.3s ease both;
+}
+
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.no-flags {
+  font-size: 0.72rem;
+  color: var(--success);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ── Interpretation Box ── */
+.interpretation-box {
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.2rem;
+}
+
+.interpretation-box p {
+  font-family: 'Newsreader', serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 0;
+  color: var(--ink);
+}
+
+.interpretation-box.ok-bg {
+  background: var(--success-dim);
+  border-left-color: var(--success);
+}
+
+.interpretation-box.warn-bg {
+  background: var(--warning-dim);
+  border-left-color: var(--warning);
+}
+
+/* ── Loading State ── */
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .loading-indicator {
   display: inline-block;

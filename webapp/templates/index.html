@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hallucination Scanner</title>
+    <title>Hallucination Scanner — Sinhala → English</title>
+    <meta name="description" content="Research tool for detecting hallucinations in Sinhala-to-English machine translation using mDeBERTa and sequence log probability." />
     <link
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,700;1,6..72,300&family=Azeret+Mono:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -13,12 +14,13 @@
   <body>
     <div class="container">
       <header>
-        <p class="header-kicker">FYP Research Tool — v0.1</p>
+        <p class="header-kicker">FYP Research Tool — v0.2</p>
         <h1>Hallucination <em>Scanner</em></h1>
         <div class="header-meta">
-          <span>NLLB Translation</span>
-          <span>DeBERTa Risk Analysis</span>
+          <span>M2M100 Translation</span>
+          <span>mDeBERTa Risk Analysis</span>
           <span>Seq Log Probability</span>
+          <span>LaBSE Semantic Similarity</span>
         </div>
       </header>
 
@@ -32,41 +34,124 @@
           <button id="analyzeBtn"><span>Translate &amp; Analyse →</span></button>
         </div>
 
+        <!-- ═══════════ RESULTS CARD ═══════════ -->
         <div class="card result-card hidden" id="resultCard">
+
+          <!-- Header row -->
           <div class="result-header">
             <h2>Analysis Result</h2>
             <span id="riskBadge" class="badge">Safe</span>
           </div>
 
-          <div class="result-grid">
-            <div class="result-item">
-              <label>English Translation</label>
-              <p id="translationText" class="translation-output">…</p>
+          <!-- Translation -->
+          <div class="result-section">
+            <span class="section-label">English Translation</span>
+            <p id="translationText" class="translation-output">…</p>
+          </div>
+
+          <!-- ── Primary Metrics Grid ── -->
+          <div class="metrics-grid">
+            <div class="metric">
+              <span class="metric-label">Log Probability</span>
+              <span id="logProbVal" class="metric-value">0.00</span>
+              <span class="metric-sublabel" id="logProbSub">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">mDeBERTa Risk</span>
+              <span id="tokenCountVal" class="metric-value">0%</span>
+              <span class="metric-sublabel" id="riskSub">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Semantic Similarity (LaBSE)</span>
+              <span id="labseScoreVal" class="metric-value">—</span>
+              <span class="metric-sublabel" id="labseSub">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Hallucination Flag</span>
+              <span id="isHallucVal" class="metric-value">No</span>
+              <span class="metric-sublabel" id="hallucSub">mDeBERTa binary</span>
+            </div>
+          </div>
+
+          <!-- ── Gauge Bars ── -->
+          <div class="result-section gauges-section">
+            <span class="section-label">Confidence Gauges</span>
+
+            <div class="gauge-row">
+              <span class="gauge-label">Log Prob confidence</span>
+              <div class="gauge-track">
+                <div class="gauge-fill" id="logProbGauge"></div>
+                <div class="gauge-threshold" id="logProbThreshold" style="left:62%;" title="Threshold: −1.70"></div>
+              </div>
+              <span class="gauge-end-label" id="logProbGaugePct">—</span>
             </div>
 
-            <div class="metrics-grid">
-              <div class="metric">
-                <span class="metric-label">Log Probability</span>
-                <span id="logProbVal" class="metric-value">0.00</span>
+            <div class="gauge-row">
+              <span class="gauge-label">Semantic similarity</span>
+              <div class="gauge-track">
+                <div class="gauge-fill" id="labseGauge"></div>
+                <div class="gauge-threshold" style="left:70%;" title="Good: > 70%"></div>
               </div>
-              <div class="metric">
-                <span class="metric-label">Is Hallucinated?</span>
-                <span id="isHallucVal" class="metric-value">No</span>
+              <span class="gauge-end-label" id="labseGaugePct">—</span>
+            </div>
+
+            <div class="gauge-row">
+              <span class="gauge-label">mDeBERTa risk</span>
+              <div class="gauge-track gauge-track--danger">
+                <div class="gauge-fill" id="riskGauge"></div>
+                <div class="gauge-threshold gauge-threshold--danger" style="left:20%;" title="Threshold: 20%"></div>
               </div>
-              <div class="metric">
-                <span class="metric-label">Risk Score</span>
-                <span id="tokenCountVal" class="metric-value">0</span>
+              <span class="gauge-end-label" id="riskGaugePct">—</span>
+            </div>
+          </div>
+
+          <!-- ── Signal Breakdown ── -->
+          <div class="result-section">
+            <span class="section-label">Detector Signal Breakdown</span>
+            <div class="signal-grid" id="signalGrid">
+              <div class="signal-item" id="sigLogProb">
+                <div class="signal-icon">◐</div>
+                <div class="signal-name">Log Probability</div>
+                <div class="signal-verdict" id="sigLogProbVerdict">—</div>
               </div>
-              <div class="metric">
-                <span class="metric-label">Semantic Similarity (LaBSE)</span>
-                <span id="labseScoreVal" class="metric-value">—</span>
+              <div class="signal-item" id="sigMDeBERTa">
+                <div class="signal-icon">◑</div>
+                <div class="signal-name">mDeBERTa</div>
+                <div class="signal-verdict" id="sigMDeBERTaVerdict">—</div>
+              </div>
+              <div class="signal-item" id="sigLaBSE">
+                <div class="signal-icon">◒</div>
+                <div class="signal-name">LaBSE</div>
+                <div class="signal-verdict" id="sigLaBSEVerdict">—</div>
+              </div>
+              <div class="signal-item signal-ensemble" id="sigEnsemble">
+                <div class="signal-icon">⊕</div>
+                <div class="signal-name">Ensemble</div>
+                <div class="signal-verdict" id="sigEnsembleVerdict">—</div>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- ── Flagged Tokens ── -->
+          <div class="result-section" id="flaggedSection">
+            <span class="section-label">Flagged Tokens <span class="section-label-dim">(mDeBERTa)</span></span>
+            <div id="flaggedTokens" class="flagged-tokens-wrap">
+              <span class="no-flags">No tokens flagged.</span>
+            </div>
+          </div>
+
+          <!-- ── Plain-English Interpretation ── -->
+          <div class="result-section interpretation-section">
+            <span class="section-label">Interpretation</span>
+            <div class="interpretation-box" id="interpretationBox">
+              <p id="interpretationText">—</p>
+            </div>
+          </div>
+
+        </div><!-- /result-card -->
       </main>
     </div>
 
-    <script src="/static/js/script.js?v=5"></script>
+    <script src="/static/js/script.js?v=6"></script>
   </body>
 </html>
