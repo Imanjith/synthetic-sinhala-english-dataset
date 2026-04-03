@@ -3,6 +3,7 @@ import logging
 import torch
 import numpy as np
 from typing import List
+from huggingface_hub import snapshot_download
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from transformers import (
@@ -20,14 +21,19 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------------------------------------
-M2M_MODEL_NAME        = "facebook/m2m100_418M"
-HALLUCINATION_MODEL_PATH = "./saved_model"   # your fine-tuned mDeBERTa checkpoint
+M2M_MODEL_NAME           = "./models"
+HALLUCINATION_MODEL_PATH = "./saved_model"
+LABSE_MODEL_PATH         = "./labse_model"
+
+M2M_REPO_ID           = "facebook/m2m100_418M"
+HALLUCINATION_REPO_ID = "imanjith/mdbertav3trained"
+LABSE_REPO_ID         = "sentence-transformers/LaBSE"
 
 # Risk thresholds (calibrated from notebook results for M2M 418M)
 # Avg log-prob for m2m_418m was -1.4839; 30th-pct threshold was -1.6582
 # We use a slightly more generous fixed threshold for single-sentence inference.
 LOGPROB_THRESHOLD  = -1.70   # below this → low confidence
-MDEBERTA_THRESHOLD = 0.20    # fraction of hallucianted tokens (0-1)
+MDEBERTA_THRESHOLD = 0.05    # fraction of hallucianted tokens (0-1)
 
 device = "cpu"  # Forced to CPU for INT8 Dynamic Quantization support
 
@@ -46,6 +52,20 @@ class TranslationResponse(BaseModel):
     flagged_tokens: list[str] = []   # list of exact string tokens flagged
     labse_score: float               # semantic similarity across languages (0-1)
     risk_level: str                  # "Low" | "Medium" | "High"
+
+# ---------------------------------------------------------------------------
+# AUTO-DOWNLOAD MISSING MODELS
+# ---------------------------------------------------------------------------
+def ensure_model_exists(repo_id: str, local_dir: str):
+    if not os.path.exists(local_dir) or not os.listdir(local_dir):
+        logger.info(f"Directory '{local_dir}' is empty/missing. Downloading '{repo_id}' from Hugging Face...")
+        os.makedirs(local_dir, exist_ok=True)
+        snapshot_download(repo_id=repo_id, local_dir=local_dir)
+        logger.info(f"Successfully downloaded '{repo_id}' to '{local_dir}'.")
+
+ensure_model_exists(repo_id=M2M_REPO_ID, local_dir=M2M_MODEL_NAME)
+ensure_model_exists(repo_id=HALLUCINATION_REPO_ID, local_dir=HALLUCINATION_MODEL_PATH)
+ensure_model_exists(repo_id=LABSE_REPO_ID, local_dir=LABSE_MODEL_PATH)
 
 # ---------------------------------------------------------------------------
 # MODEL LOADING — eager, at import time (before uvicorn event loop starts)
@@ -73,15 +93,8 @@ except Exception as e:
 # 2. mDeBERTa hallucination detector
 try:
     logger.info(f"Loading hallucination detector from: {HALLUCINATION_MODEL_PATH} ...")
-    _tok_det = AutoTokenizer.from_pretrained("microsoft/mdeberta-v3-base")
-    _model_path = (
-        HALLUCINATION_MODEL_PATH
-        if os.path.exists(HALLUCINATION_MODEL_PATH)
-        else "microsoft/mdeberta-v3-base"
-    )
-    if _model_path == "microsoft/mdeberta-v3-base":
-        logger.warning("Fine-tuned checkpoint not found — using base model (scores will be unreliable).")
-    _mdl_det = AutoModelForTokenClassification.from_pretrained(_model_path, num_labels=2)
+    _tok_det = AutoTokenizer.from_pretrained(HALLUCINATION_MODEL_PATH)
+    _mdl_det = AutoModelForTokenClassification.from_pretrained(HALLUCINATION_MODEL_PATH, num_labels=2)
     logger.info("Compressing Hallucination Detector to INT8...")
     _mdl_det = torch.quantization.quantize_dynamic(_mdl_det, {torch.nn.Linear}, dtype=torch.qint8)
     _mdl_det = _mdl_det.to(device)
@@ -95,8 +108,8 @@ except Exception as e:
 # 3. LaBSE semantic similarity model
 try:
     logger.info("Loading LaBSE semantic similarity model...")
-    _tok_labse = AutoTokenizer.from_pretrained("sentence-transformers/LaBSE")
-    _mdl_labse = AutoModel.from_pretrained("sentence-transformers/LaBSE")
+    _tok_labse = AutoTokenizer.from_pretrained(LABSE_MODEL_PATH)
+    _mdl_labse = AutoModel.from_pretrained(LABSE_MODEL_PATH)
     logger.info("Compressing LaBSE to INT8...")
     _mdl_labse = torch.quantization.quantize_dynamic(_mdl_labse, {torch.nn.Linear}, dtype=torch.qint8)
     _mdl_labse = _mdl_labse.to(device)
