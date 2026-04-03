@@ -12,7 +12,7 @@ This project tackles this issue by employing a rigorous three-signal ensemble ap
 
 The hallucination detection logic is based on the following three core metric layers:
 
-<img width="1117" height="856" alt="image" src="https://github.com/user-attachments/assets/9e24b3f7-2569-4e17-9ffe-5923feae1859" />
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/9e24b3f7-2569-4e17-9ffe-5923feae1859" />
 
 
 ### 1. Token-Level Risk (mDeBERTa)
