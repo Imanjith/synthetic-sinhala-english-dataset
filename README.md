@@ -45,7 +45,7 @@ The web application aggregates these metrics to provide an automated and highly 
 
 ## Synthetic Dataset Generation
 
-<img width="1211" height="850" alt="image" src="https://github.com/user-attachments/assets/ff020fd8-ba90-43f9-9e16-3d2afb0499fb" />
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/ff020fd8-ba90-43f9-9e16-3d2afb0499fb" />
 
 
 Training the localized mDeBERTa token classifier required a carefully curated, balanced dataset of faithful versus hallucinated translations. We built an automated pipeline using `Dataset Generation.ipynb` which:
