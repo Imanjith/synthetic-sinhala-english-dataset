@@ -12,6 +12,9 @@ This project tackles this issue by employing a rigorous three-signal ensemble ap
 
 The hallucination detection logic is based on the following three core metric layers:
 
+<img width="1117" height="856" alt="image" src="https://github.com/user-attachments/assets/9e24b3f7-2569-4e17-9ffe-5923feae1859" />
+
+
 ### 1. Token-Level Risk (mDeBERTa)
 We fine-tuned `microsoft/mdeberta-v3-base` as a sequence tagger. It accepts the source sentence and the generated English translation to classify each token in the hypothesis as either "safe" or "hallucinated". 
 - The model was trained dynamically via sequence matching against an aligned synthetic dataset, penalizing ungrounded insertions and non-paraphrased replacements.
@@ -30,18 +33,27 @@ The web application aggregates these metrics to provide an automated and highly 
 - **Medium Risk**: A divergence occurs where only one of the primary signals indicates a potential hallucination boundary.
 - **Safe**: All signals suggest high reliability.
 
-![Scanner Web Interface](docs/scanner_interface.png)
-*(Note: Please place a screenshot of the interactive web dashboard with confidence gauges active into `docs/scanner_interface.png`)*
+![Scanner Web Interface](<img width="881" height="613" alt="image" src="https://github.com/user-attachments/assets/bfa4dc7b-bc0b-4758-ad4d-81a9a061788c" />)
+
+
+<img width="970" height="798" alt="image" src="https://github.com/user-attachments/assets/1a7b33ce-bcc6-46ee-a61e-e2791f1bf0b6" />
+
+<img width="899" height="822" alt="image" src="https://github.com/user-attachments/assets/4bd9d8b8-1980-4e98-b0ef-7319b702e27d" />
+
+<img width="920" height="673" alt="image" src="https://github.com/user-attachments/assets/0e3b2185-6386-447b-8062-84c5d784cfea" />
+
 
 ## Synthetic Dataset Generation
+
+<img width="1211" height="850" alt="image" src="https://github.com/user-attachments/assets/ff020fd8-ba90-43f9-9e16-3d2afb0499fb" />
+
 
 Training the localized mDeBERTa token classifier required a carefully curated, balanced dataset of faithful versus hallucinated translations. We built an automated pipeline using `Dataset Generation.ipynb` which:
 1. **Model Distillation**: Utilizes NLLB 1.3B paired with highly stochastic generation temperatures to force semantic divergence away from grounded source texts.
 2. **Grammar Filtering**: Employs an offline LanguageTool wrapper to specifically filter out poor generations containing broken grammar. This isolation strictly forces the downstream detector to learn semantic discrepancies rather than identifying easily detectable typographical errors.
 3. **Class Balancing**: Downsamples the baseline sets to guarantee an exact 50-50 class split between valid translations and generated hallucinated strings, eliminating fundamental classifier bias.
 
-![Dataset Architecture Overview](docs/dataset_architecture.png)
-*(Note: Please attach a visualization of dataset generation paths or metrics into `docs/dataset_architecture.png`)*
+
 
 ## Project Structure
 
