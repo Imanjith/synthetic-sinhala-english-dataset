@@ -35,11 +35,9 @@ LABSE_REPO_ID         = "sentence-transformers/LaBSE"
 LOGPROB_THRESHOLD  = -1.70   # below this → low confidence
 MDEBERTA_THRESHOLD = 0.05    # fraction of hallucianted tokens (0-1)
 
-device = "cpu"  # Forced to CPU for INT8 Dynamic Quantization support
+device = "cpu"  
 
-# ---------------------------------------------------------------------------
 # REQUEST / RESPONSE SCHEMAS
-# ---------------------------------------------------------------------------
 class TranslationRequest(BaseModel):
     text: str
 
@@ -53,9 +51,7 @@ class TranslationResponse(BaseModel):
     labse_score: float               # semantic similarity across languages (0-1)
     risk_level: str                  # "Low" | "Medium" | "High"
 
-# ---------------------------------------------------------------------------
 # AUTO-DOWNLOAD MISSING MODELS
-# ---------------------------------------------------------------------------
 def ensure_model_exists(repo_id: str, local_dir: str):
     if not os.path.exists(local_dir) or not os.listdir(local_dir):
         logger.info(f"Directory '{local_dir}' is empty/missing. Downloading '{repo_id}' from Hugging Face...")
@@ -67,9 +63,7 @@ ensure_model_exists(repo_id=M2M_REPO_ID, local_dir=M2M_MODEL_NAME)
 ensure_model_exists(repo_id=HALLUCINATION_REPO_ID, local_dir=HALLUCINATION_MODEL_PATH)
 ensure_model_exists(repo_id=LABSE_REPO_ID, local_dir=LABSE_MODEL_PATH)
 
-# ---------------------------------------------------------------------------
-# MODEL LOADING — eager, at import time (before uvicorn event loop starts)
-# ---------------------------------------------------------------------------
+
 logger.info(f"Loading models on device: {device}")
 
 models = {}
@@ -123,9 +117,8 @@ except Exception as e:
 logger.info(f"Startup complete. Loaded models: {list(models.keys())}")
 
 
-# ---------------------------------------------------------------------------
 # INFERENCE HELPERS
-# ---------------------------------------------------------------------------
+
 
 def generate_translation(text: str) -> tuple[str, float]:
     """
@@ -285,9 +278,7 @@ def categorize_risk(log_prob: float, mdeberta_risk: float) -> str:
         return "Low"
 
 
-# ---------------------------------------------------------------------------
 # FASTAPI APP
-# ---------------------------------------------------------------------------
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="webapp/static"), name="static")
@@ -309,14 +300,10 @@ async def predict(request: TranslationRequest):
     # 1. Translate + compute log-prob confidence
     translation, log_prob = generate_translation(text)
     
-    # --- DEBUG / TESTING FEATURE ---
-    # If the user prefixes the text with "TEST:", force a complete hallucination
-    # so they can see the mDeBERTa model flag it correctly.
     if text.startswith("TEST:"):
         text = text.replace("TEST:", "").strip()
         translation = "A random completely hallucinated sentence that means nothing in Sinhala."
         log_prob = -5.0 # Low confidence
-    # -------------------------------
 
     # 2. Detect hallucinations with mDeBERTa
     halluc_risk, flagged_tokens = detect_hallucinations(text, translation)
