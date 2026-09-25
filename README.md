@@ -10,7 +10,7 @@ Machine translation for low-resource languages like Sinhala can produce fluent E
 - an evaluation of a **three-signal ensemble** (detector risk, sequence log-probability, LaBSE similarity), and
 - a **benchmark of eight Sinhala→English NMT systems**.
 
-Every number in the paper can be traced to a cell output in the notebooks or to a file in `results/`.
+Every number in the paper can be traced to a cell output in the notebooks or to a file in `Results/`.
 
 ## Repository structure
 
