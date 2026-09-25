@@ -1,99 +1,88 @@
-# Hallucination Detection and Mitigation for Sinhala-to-English NMT
+# Fact over Fiction: Hallucination Detection for Sinhala-to-English NMT
 
-A comprehensive research tool, dataset, and framework designed for detecting and mitigating "pathological" hallucinations in Sinhala-to-English Neural Machine Translation (NMT) outputs. This project was developed as part of a final-year research thesis to ensure NMT safety in low-resource deployment scenarios.
+Code, data and results for reference-free, token-level hallucination detection in Sinhala→English neural machine translation.
 
-## Overview
+Machine translation for low-resource languages like Sinhala can produce fluent English that is unrelated to the source. This repository contains:
 
-Machine translation for low-resource languages like Sinhala is highly susceptible to generating fluent but entirely incorrect translations, a phenomenon known as a "hallucination". In low-resource settings, weak cross-lingual alignment often leads to these severe semantic disconnects. Standard sequence-to-sequence metrics like BLEU or chrF capture surface-level textual overlaps but often fail to penalize model hallucinations where the output completely diverges from the source meaning while remaining grammatically fluent.
+- a **45,000-row synthetic hallucination corpus** built from five linguistically motivated corruption strategies,
+- a fine-tuned **mDeBERTa-v3 token-level detector** (token F1 0.841 ± 0.001 over three seeds on a source-disjoint test set),
+- a **source-ablation control** showing that the detector relies on the Sinhala source rather than on surface artefacts of the corruption process,
+- an evaluation of a **three-signal ensemble** (detector risk, sequence log-probability, LaBSE similarity), and
+- a **benchmark of eight Sinhala→English NMT systems**.
 
-This project tackles this issue by employing a rigorous, reference-free three-signal ensemble approach to evaluate translation reliability. Rather than relying on a single metric, the system triangulates the probability of hallucination by observing neural risk scores, the model's intrinsic uncertainty, and cross-lingual semantic alignment.
+Every number in the paper can be traced to a cell output in the notebooks or to a file in `results/`.
 
-## Methodology & Mathematical Formulation
-
-The reference-free hallucination detection framework is based on three core metric layers. Below are the in-depth mechanics and equations governing each signal:
-
-<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/9e24b3f7-2569-4e17-9ffe-5923feae1859" />
-
-### 1. Token-Level Risk (mDeBERTa-v3)
-We fine-tuned `microsoft/mdeberta-v3-base` for token-level sequence labelling. This enables precise error localisation by accepting the source sentence and the generated English translation to classify each token in the hypothesis as either "safe" (0) or "hallucinated" (1). 
-
-- **Training**: The model was trained dynamically via sequence matching against our aligned synthetic dataset. Crucially, we introduced a novel **semantic rescue mechanism** that utilises character-level similarity to distinguish genuine semantic hallucinations from valid lexical paraphrases.
-- **Inference Computation**: The system calculates the fractional risk of the sentence based on the token predictions. Let $N$ be the total number of hypothesis tokens, and $\hat{y}_i$ be the boolean prediction for the $i$-th token.
-
-$$ \text{Token Risk (mDeBERTa)} = \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(\hat{y}_i = 1) $$
-
-### 2. Sequence Log Probability (Teacher-Forcing Uncertainty)
-Sequence log probability acts as the NMT model's internal confidence parameter. Instead of relying on beam search decoding logits (which vary heavily across model architectures like NLLB vs M2M100), it is computed via a **teacher-forcing forward pass** acting on the generated sequence. Lower log probabilities mathematically reflect high prediction uncertainty at the decoding level.
-
-Given a source sequence $X$ and a generated hypothesis sequence $Y$, the log probability is derived from the cross-entropy loss function of the auto-regressive NMT model $\theta$:
-
-$$ \text{Seq LogProb} = -\mathcal{L}_{\text{CE}} \left( Y \mid X, \theta \right) = \frac{1}{|Y|} \sum_{t=1}^{|Y|} \log P(y_t \mid y_{<t}, X, \theta) $$
-
-This negative log-likelihood acts as a strong, standardized heuristic layer for underlying semantic hallucinations across different NMT model families.
-
-### 3. Cross-Lingual Semantic Similarity (LaBSE)
-To verify meaning preservation regardless of arbitrary text decoding paths, we utilize Language-Agnostic BERT Sentence Embeddings (LaBSE). This module computes cross-lingual vector embeddings for both the Sinhala source ($E_{src}$) and the English hypothesis ($E_{hyp}$) via mean-pooling across non-padding tokens. By measuring the cosine distance between the L2-normalized embeddings, we establish a rigid threshold to ensure concepts remain strictly aligned.
-
-$$ \text{LaBSE Similarity} = \frac{E_{src} \cdot E_{hyp}}{\|E_{src}\| \|E_{hyp}\|} = \cos(\theta) $$
-
-## Ensemble Verdict Logic
-
-The web application aggregates these metrics to provide an automated, reliable, and highly actionable verdict based on precise boundaries:
-- **High Risk**: Both token-level neural risk scores (mDeBERTa) and sequence metrics (log-prob) fall outside established safety thresholds.
-- **Medium Risk**: A divergence occurs where only one of the primary signals indicates a potential hallucination boundary.
-- **Safe**: All signals safely align, confirming high likelihood of translation fidelity.
-
-Extensive benchmarking across **eight diverse NMT systems** has proven that this triple-signal approach effectively identifies semantic disconnects that traditional confidence-based metrics overlook, showing strong Spearmean correlations with advanced established metrics such as BERTScore and COMET.
-
-**Visual Dashboard Metrics:**
-![Scanner Web Interface](<img width="881" height="613" alt="image" src="https://github.com/user-attachments/assets/bfa4dc7b-bc0b-4758-ad4d-81a9a061788c" />)
-<img width="970" height="798" alt="image" src="https://github.com/user-attachments/assets/1a7b33ce-bcc6-46ee-a61e-e2791f1bf0b6" />
-<img width="899" height="822" alt="image" src="https://github.com/user-attachments/assets/4bd9d8b8-1980-4e98-b0ef-7319b702e27d" />
-<img width="920" height="673" alt="image" src="https://github.com/user-attachments/assets/0e3b2185-6386-447b-8062-84c5d784cfea" />
-
-
-## Synthetic Dataset Generation
-
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/ff020fd8-ba90-43f9-9e16-3d2afb0499fb" />
-
-Training the localized mDeBERTa token classifier required a carefully curated, balanced dataset. Rather than relying on computationally expensive human annotation, we introduced a synthetic dataset of **45,000 sentence pairs** generated through a probabilistic chain of five linguistically motivated corruption strategies. The automated pipeline performs:
-
-1. **Model Distillation & Corruption**: Utilizes models like NLLB 1.3B paired with highly stochastic generation temperatures and probabilistic corruption chains (e.g., Entity Swapping via spaCy) to force semantic divergence away from grounded source texts.
-2. **Grammar Validity Filtering**: Employs an offline LanguageTool wrapper to specifically filter out poor generations containing broken grammar. This isolation strictly forces the downstream detector to learn semantic discrepancies rather than identifying easily detectable typographical errors.
-3. **Class Balancing & Semantic Rescue**: Utilizes character-level sequence matching to prevent paraphrasing from being marked as hallucinated. It then downsamples the baseline sets to guarantee an exact 50-50 class split between valid translations and generated hallucinated strings, eliminating fundamental classifier bias.
-
-## Project Structure
+## Repository structure
 
 ```text
-├── Datasets/                               # 45,000-pair synthetic datasets (e.g., balanced 15k sets)
-├── models/ / saved_model/                  # Fine-tuned mDeBERTa token-classification checkpoints
-├── webapp/                                 # Interactive hallucination scanner web interface
-│   ├── app.py                              # FastAPI backend aggregating M2M100 + mDeBERTa + LaBSE
-│   ├── templates/index.html                # Frontend UI utilizing dynamic risk logic gauges
-│   └── static/                             # CSS styling and functional JavaScript state management
-├── Dataset Generation.ipynb                # Probabilistic data generation and grammar filtering pipeline
-├── Main Hallucination Detector.ipynb       # Detector training loops and baseline evaluation scripts
-└── Hallucination Detector Comparison.ipynb # Quantitative evaluations across 8 NMT systems vs BERTScore/COMET
+├── Dataset Generation.ipynb          # Corpus generation, grammar filter, balancing (with outputs)
+├── Main Hallucination Detector.ipynb # Training, evaluation, source ablation, ensemble, benchmark (with outputs)
+├── Datasets/
+│   ├── synthetic_hallucinations_full.csv      # 45,000-row released corpus
+│   └── synthetic_hallucinations_balanced.csv  # 15,000-row balanced subset used for all experiments
+├── results/                          # Splits, result tables, benchmark outputs, calibrated thresholds
+└── webapp/                           # Demo scanner interface (earlier version, see note below)
 ```
 
-## Setup and Installation
+Detector checkpoints (about 1 GB) are hosted separately: **[link to checkpoints]**
 
-The web application acts as local testbed, exposing an inference API and a premium dashboard visualizing the triple-signal evaluation logic against a live M2M100 (418M) machine translation pass.
+## Dataset
 
-### 1. Install Dependencies
+Built from `NLPC-UOM/nllb-top25k-ensi-cleaned`. 7,500 source sentences were sampled (seed 42) and five negative samples planned per source, giving 45,000 rows (32,577 hallucinated, 12,423 faithful).
+
+| Strategy | What it does |
+|---|---|
+| High-temperature sampling | NLLB-200-1.3B at T = 1.5 (top-p 0.95, top-k 50); kept only if BERTScore F1 < 0.92 |
+| Entity (NER) swap | Replaces one entity with a same-label entity from a pool |
+| Semantic drift | Replaces one non-entity content word with a WordNet antonym |
+| Dependency swap | Swaps the subject and object of the same verb |
+| Numeric distortion | Increments, decrements or appends a digit to one number |
+
+A probabilistic chain applies a second strategy to 80% of hallucinated rows, producing compound hallucinations (the `method` column records the chain, e.g. `temp + ner`). A LanguageTool grammar filter is applied before balancing. The balanced subset uses the 7,500 references as faithful samples and 7,500 randomly drawn hallucinations, split 70/10/20 **by source sentence** so no source appears in more than one split.
+
+**Columns:** `sinhala`, `hypothesis`, `reference`, `label` (1 = hallucinated), `method`.
+
+## Detector
+
+`microsoft/mdeberta-v3-base` fine-tuned for token classification on `[CLS] source [SEP] hypothesis [SEP]`. Token labels come from `difflib` alignment with the reference, plus a semantic-rescue step (Ratcliff/Obershelp similarity ≥ 0.80 against the aligned reference span) applied to high-temperature rows. A sentence is flagged if any hypothesis token has P(hallucinated) > 0.5 (τ = 0, calibrated on validation).
+
+| Model | Token F1 (test, 3 seeds) |
+|---|---|
+| mDeBERTa-v3 | 0.841 ± 0.001 |
+| XLM-RoBERTa | 0.789 ± 0.005 |
+
+Source-ablation control: shuffling or removing the source drops sentence-level AUROC from 0.970 to chance, and faithful hypotheses paired with a mismatched source are flagged 100% of the time (4.5% with the correct source).
+
+## Reproducing the results
+
+Both notebooks were run on Kaggle with a single NVIDIA T4.
+
+1. Run `Dataset Generation.ipynb`. It writes the two CSVs in `Datasets/`.
+2. Upload the balanced CSV as a Kaggle dataset and set `DATASET_FILE` in `Main Hallucination Detector.ipynb`.
+3. Run `Main Hallucination Detector.ipynb`. The `RUN_*` flags at the top allow resuming across sessions. Outputs (tables, splits, benchmark signals, checkpoints) are written to `/kaggle/working`.
+
+All randomness is seeded (generation and splits: 42; training: 42, 43, 44).
+
+## Web demo
+
+`webapp/` contains a FastAPI demo that translates Sinhala input with M2M-100 (418M) and displays detector risk, log-probability and LaBSE similarity. **It predates the revised experiments** and uses an earlier detector and thresholds, so its verdicts do not correspond to the results reported in the paper.
+
 ```bash
 pip install fastapi uvicorn torch transformers sentence-transformers numpy pydantic
+python webapp/app.py   # then open http://localhost:8000
 ```
 
-### 2. Start the Application Server
-Navigate to the root directory of the project and execute:
-```bash
-python webapp/app.py
+## Limitations
+
+The detector is trained on synthetic corruptions; its precision on naturally occurring translation errors has not been measured with human annotation. Thresholds were calibrated on a balanced split and are not calibrated for the much lower hallucination rates of real translations. See the paper's Limitations section for details.
+
+## Citation
+
+```bibtex
+@inproceedings{obeysekara2026factoverfiction,
+  title     = {Fact over Fiction: Detection of Pathological Hallucinations in Sinhala-to-English Neural Machine Translation},
+  author    = {Obeysekara, Navam and Jayatilleke, Nevidu},
+  booktitle = {Proceedings of ROCLING 2026},
+  year      = {2026}
+}
 ```
-*Note: Bootstrapping initializes HuggingFace downloads of model weights (M2M-418M, mDeBERTa-v3, and LaBSE) upon first run.*
-
-### 3. Usage Evaluation
-Navigate to `http://localhost:8000` via your web browser. Input a Sinhala text sequence. The system will perform real-time translation and visualize dynamically scaled gauge thresholds mapping the log probability margin, semantic alignment distance, and mDeBERTa fractional risk.
-
-## Academic Context
-Developed and configured for academic NMT evaluation research contexts (BSc. Hons in AI and Data Science thesis). Always consult individual repository licensing domains for the integration of upstream HuggingFace model architectures before any enterprise implementations.
